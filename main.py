@@ -31,29 +31,32 @@ def main():
             process_author(sub)
         else:
             process_sub(sub)
-        
+
+
+def get_posts(page):
+    new = [p for p in page.new(limit=10)]
+    top = [p for p in page.top(limit=10, time_filter="month")]
+    # hot = [p for p in page.hot(limit=10)]
+
+    return new + top
+
 
 def process_author(author):
-    user = reddit.redditor(sub)
-    new = [s for s in user.submissions.new(limit=10)]
-    top = [s for s in user.submissions.top(limit=10, time_filter="month")]
-    # hot = [s for s in user.submissions.hot(limit=1000)]
-
-    for post in new + top:
+    user_page = reddit.redditor(author).submissions
+    
+    for post in get_posts(user_page):
         process_post(post)
 
 
 def process_sub(sub):
-    new = [s for s in reddit.subreddit(sub).new(limit=10)]
-    top = [s for s in reddit.subreddit(sub).top(limit=10, time_filter="month")]
-    # hot = [s for s in reddit.subreddit(sub).hot(limit=1000)]
+    subreddit = reddit.subreddit(sub)
 
-    for post in new + top:
+    for post in get_posts(subreddit):
         process_post(post)
 
 
 def process_post(post):
-    print(post.id)
+    print(f"{post.id} - {post.title}")
 
     data = vars(post)
     post_data = dict()
@@ -97,8 +100,8 @@ def download_post(post):
 
         all_files.append(new_file)
 
-        print(f"{post['id']} - {new_file[0:2]}/{new_file[2:4]}/{new_file[4:6]}/   {new_file[6:]}")
-        print(f"{post['id']} - {dl_file}")
+        # print(f"{post['id']} - {new_file[0:2]}/{new_file[2:4]}/{new_file[4:6]}/   {new_file[6:]}")
+        # print(f"{post['id']} - {dl_file}")
 
         dirs = []
         for di in range(3):
