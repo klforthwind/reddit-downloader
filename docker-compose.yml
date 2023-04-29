@@ -1,0 +1,8 @@
+version: "1"
+services:
+  app:
+    build: .
+    volumes:
+      - ${IMG_FOLDER}:/pictures/
+      - ${IMG_FOLDER}/${TEMP_IMGS}:/pictures/_RedditPRAW/
+      - ${INFO_FOLDER}:/info/
