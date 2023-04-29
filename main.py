@@ -59,7 +59,7 @@ def process_post(post):
     post_data = dict()
 
     for k in data.keys():
-        if k[0] != "_":
+        if k[0] != "_" and k != "poll_data":
             if k in ["subreddit", "author"]:
                 post_data[k] = str(data[k])
             else:
@@ -77,7 +77,7 @@ def download_post(post):
 
     os.chdir("/pictures/_RedditPRAW/")
 
-    print(url)
+    print(post[url])
 
     os.popen(f"gallery-dl -D . {post[url]}").read()
     time.sleep(1)
