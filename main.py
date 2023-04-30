@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 from os.path import isfile
 from os.path import isdir
+import logging as logger
 import inspect
 import hashlib
 import json
@@ -13,6 +14,12 @@ import os
 load_dotenv()
 
 LIMIT = int(os.getenv("LIMIT"))
+
+logger.basicConfig(
+    format='%(asctime)s %(message)s',
+    datefmt='%m/%d/%Y %I:%M:%S %p %Z',
+    level=logger.INFO
+)
 
 reddit = praw.Reddit(
     client_id = os.getenv('client'),
@@ -27,7 +34,7 @@ def main():
     subreddits = sorted(list(map(lambda s: s.display_name, subscribed)))
 
     for sub in subreddits:
-        print(f"Processing {sub}!")
+        logger.info(f"Processing {sub}!")
 
         if sub[0:2] == "u_":
             process_author(sub[2:])
@@ -78,7 +85,7 @@ def get_data(post):
 
 def process_post(post):
     """Processes a single post."""
-    print(f"{post.id} - {post.title}")
+    logger.info(f"{post.id} - {post.title}")
 
     if post_exists(post.id):
         return
@@ -104,6 +111,36 @@ def get_sha256(filename):
     
     return new_file
 
+def download_from_archived(post):
+    proc_files = []
+    data = post
+
+    parents = "crosspost_parent_list"
+    if parents in data and len(data[parents]):
+        data = data["crosspost_parent_list"][0]
+
+    if "gallery_data" in data and "media_metadata" in data and data["gallery_data"] is not None:
+        logger.info(f"MediaMetadata - Downloading")
+        order = list(map(lambda x: x["media_id"], data["gallery_data"]["items"]))
+
+        for o_id in order:
+            try:
+                if data["media_metadata"][o_id]["status"] != "failed":
+                    source = data["media_metadata"][o_id]["s"]
+                    key = "u"
+                    if "gif" in source:
+                        key="gif"
+                    elif "mp4" in source:
+                        key="mp4" 
+                    url = source[key].replace("&amp;", "&")
+                    os.popen(f'gallery-dl "{url}" -D . ').read()
+                    for f in os.listdir():
+                        if f not in proc_files:
+                            proc_files.append(f)
+            except:
+                pass
+    return proc_files
+
 
 def download_post(post):
     os.chdir("/pictures/_RedditPRAW/")
@@ -117,9 +154,24 @@ def download_post(post):
     time.sleep(1)
 
     all_files = []
+    proc_files = []
 
-    for dl_file in os.listdir():
-        
+    if len(os.listdir()) == 0 and ".gif" not in url and ".mp4" not in url:
+        proc_files = download_from_archived(post)
+    elif len(os.listdir()) == 0 and "preview" in post:
+        try:
+            url = post["preview"]["images"][0]["source"]["url"].replace("&amp;", "&")
+            os.popen(f'gallery-dl "{url}" -D . ').read()
+            for f in os.listdir():
+                if f not in proc_files:
+                    proc_files.append(f)
+        except:
+            pass
+
+    if len(proc_files) == 0:
+        proc_files = sorted(os.listdir())
+
+    for dl_file in proc_files:
         new_file = get_sha256(dl_file)
         all_files.append(new_file)
 
