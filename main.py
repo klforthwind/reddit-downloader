@@ -80,6 +80,9 @@ def process_post(post):
     """Processes a single post."""
     print(f"{post.id} - {post.title}")
 
+    if post_exists(post.id):
+        return
+
     post_data = get_data(post)
 
     all_files = download_post(post_data)
@@ -139,6 +142,22 @@ def download_post(post):
         raise Exception
 
     return all_files
+
+
+def post_exists(post_id):
+    os.chdir("/relations/")
+    post_id = post_id.zfill(8)
+    dirs = [post_id[di*2:di*2+2] for di in range(2)]
+    route = './'
+
+    for dir_ in dirs:
+        route += dir_ + '/'
+        if not isdir(route):
+            return False
+
+    with open(f"{route}{post_id[4:6]}.json") as read_file:
+        json_data = json.load(read_file)
+        return post_id in json_data
 
 
 def save_data(post_id, post_data, directory):
