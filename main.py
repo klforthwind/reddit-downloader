@@ -155,6 +155,9 @@ def post_exists(post_id):
         if not isdir(route):
             return False
 
+    if not isfile(f"{route}{post_id[4:6]}.json"):
+        return False
+
     with open(f"{route}{post_id[4:6]}.json") as read_file:
         json_data = json.load(read_file)
         return post_id in json_data
@@ -173,7 +176,7 @@ def save_data(post_id, post_data, directory):
             os.mkdir(route)
 
     json_data = dict()
-    if f"{post_id[4:6]}.json" in os.listdir(route):
+    if isfile(f"{route}{post_id[4:6]}.json"):
         with open(f"{route}{post_id[4:6]}.json") as read_file:
             json_data = json.load(read_file)
 
