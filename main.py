@@ -30,6 +30,8 @@ reddit = praw.Reddit(
 )
 
 def main():
+    logger.info(f"App is up and running!")
+
     subscribed = list(reddit.user.subreddits(limit=None))
     subreddits = sorted(list(map(lambda s: s.display_name, subscribed)))
 
@@ -40,6 +42,8 @@ def main():
             process_author(sub[2:])
         else:
             process_sub(sub)
+
+    logger.info(f"App is finished and exiting!")
 
 
 def get_posts(page):
