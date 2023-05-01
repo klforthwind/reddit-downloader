@@ -154,7 +154,7 @@ def download_post(post):
         return
     
     url_key = uobd if uobd in post else "url"
-    url = post[url].replace("&amp;", "&")
+    url = post[url_key].replace("&amp;", "&")
     os.popen(f'gallery-dl "{url}" -D . ').read()
     time.sleep(1)
 
