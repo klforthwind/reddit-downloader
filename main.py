@@ -85,10 +85,10 @@ def get_data(post):
 
 def process_post(post):
     """Processes a single post."""
-    logger.info(f"{post.id} - {post.title}")
-
     if post_exists(post.id):
         return
+
+    logger.info(f"{post.id} - {post.title}")
 
     post_data = get_data(post)
 
@@ -149,8 +149,9 @@ def download_post(post):
     if "url" not in post and uobd not in post:
         return
     
-    url = uobd if uobd in post else "url"
-    os.popen(f"gallery-dl -D . {post[url]}").read()
+    url_key = uobd if uobd in post else "url"
+    url = post[url].replace("&amp;", "&")
+    os.popen(f'gallery-dl "{url}" -D . ').read()
     time.sleep(1)
 
     all_files = []
