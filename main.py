@@ -163,7 +163,7 @@ def download_post(post):
 
     if len(os.listdir()) == 0 and ".gif" not in url and ".mp4" not in url:
         proc_files = download_from_archived(post)
-    elif len(os.listdir()) == 0 and "preview" in post:
+    if len(os.listdir()) == 0 and "preview" in post:
         try:
             url = post["preview"]["images"][0]["source"]["url"].replace("&amp;", "&")
             os.popen(f'gallery-dl "{url}" -D . ').read()
