@@ -51,9 +51,9 @@ def main():
 
 def get_posts(page):
     """Get posts from page (subreddit / author)."""
-    new = [p for p in page.new(limit=LIMIT)]
-    # top = [p for p in page.top(limit=LIMIT, time_filter="month")]
-    # hot = [p for p in page.hot(limit=LIMIT)]
+    new = list(page.new(limit=LIMIT))
+    # top = list(page.top(limit=LIMIT, time_filter="month"))
+    # hot = list(page.hot(limit=LIMIT))
 
     # return new + top
     return new
@@ -78,7 +78,7 @@ def process_sub(sub):
 def get_data(post):
     """Returns the data of a post."""
     data = vars(post)
-    post_data = dict()
+    post_data = {}
 
     for k in data.keys():
         if k[0] == "_" or k == "poll_data":
@@ -101,7 +101,10 @@ def process_post(post):
 
     post_data = get_data(post)
 
-    all_files = download_post(post_data)
+    all_files, files_remaining = download_post(post_data)
+    if files_remaining:
+        raise RuntimeError("Files still exist within directory")
+
     save_data(post_data["id"], post_data, "/info/")
     save_data(post_data["id"], all_files, "/relations/")
 
@@ -155,7 +158,7 @@ def download_post(post):
 
     uobd = "url_overridden_by_dest"
     if "url" not in post and uobd not in post:
-        return
+        return None
 
     url_key = uobd if uobd in post else "url"
     url = post[url_key].replace("&amp;", "&")
@@ -184,9 +187,6 @@ def download_post(post):
         new_file = get_sha256(dl_file)
         all_files.append(new_file)
 
-        # print(f"{post['id']} - {new_file[0:2]}/{new_file[2:4]}/{new_file[4:6]}/   {new_file[6:]}")
-        # print(f"{post['id']} - {dl_file}")
-
         dirs = [new_file[di*2:di*2+2] for di in range(3)]
         route = '../'
 
@@ -195,14 +195,12 @@ def download_post(post):
             if not isdir(route):
                 os.mkdir(route)
 
-        if not isfile(f'"{route}{new_file[2*len(dirs):]}"'):
-            os.popen(f'cp "./{dl_file}" "{route}{new_file[2*len(dirs):]}"').read()
+        dest = f'"{route}{new_file[2*len(dirs):]}"'
+        if not isfile(dest):
+            os.popen(f'cp "./{dl_file}" {dest}').read()
         os.popen(f'rm "./{dl_file}"').read()
 
-    if len(os.listdir()):
-        raise RuntimeError("Files still exist within directory")
-
-    return all_files
+    return all_files, len(os.listdir())
 
 
 def post_exists(post_id):
@@ -238,7 +236,7 @@ def save_data(post_id, post_data, directory):
         if not isdir(route):
             os.mkdir(route)
 
-    json_data = dict()
+    json_data = {}
     if isfile(f"{route}{post_id[4:6]}.json"):
         with open(f"{route}{post_id[4:6]}.json", encoding="utf-8") as read_file:
             json_data = json.load(read_file)
