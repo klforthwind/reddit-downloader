@@ -1,4 +1,4 @@
-"""Main file for Reddit Downloader"""
+"""Main file for reddit-downloader"""
 from os.path import isfile
 from os.path import isdir
 import logging as logger
@@ -40,39 +40,16 @@ def main():
             logger.info("Processing %s!", sub)
 
             if sub[0:2] == "u_":
-                process_author(sub[2:])
+                page = reddit.redditor(sub[2:]).submissions
             else:
-                process_sub(sub)
+                page = reddit.subreddit(sub)
+
+            for post in list(page.new(limit=1000)):
+                process_post(post)
 
         time.sleep(600)
 
     logger.info("App is finished and exiting!")
-
-
-def get_posts(page):
-    """Get posts from page (subreddit / author)."""
-    new = list(page.new(limit=LIMIT))
-    # top = list(page.top(limit=LIMIT, time_filter="month"))
-    # hot = list(page.hot(limit=LIMIT))
-
-    # return new + top
-    return new
-
-
-def process_author(author):
-    """Iterates over author posts."""
-    user_page = reddit.redditor(author).submissions
-
-    for post in get_posts(user_page):
-        process_post(post)
-
-
-def process_sub(sub):
-    """Iterates over subreddit posts."""
-    subreddit = reddit.subreddit(sub)
-
-    for post in get_posts(subreddit):
-        process_post(post)
 
 
 def get_data(post):
@@ -98,7 +75,6 @@ def process_post(post):
         return
 
     logger.info("%s - %s", post.id, post.title)
-
     post_data = get_data(post)
 
     all_files, files_remaining = download_post(post_data)
