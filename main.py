@@ -32,26 +32,30 @@ reddit = praw.Reddit(
 def main():
     logger.info(f"App is up and running!")
 
-    subscribed = list(reddit.user.subreddits(limit=None))
-    subreddits = sorted(list(map(lambda s: s.display_name, subscribed)))
+    while True:
+        subscribed = list(reddit.user.subreddits(limit=None))
+        subreddits = sorted(list(map(lambda s: s.display_name, subscribed)))
 
-    for sub in subreddits:
-        logger.info(f"Processing {sub}!")
+        for sub in subreddits:
+            logger.info(f"Processing {sub}!")
 
-        if sub[0:2] == "u_":
-            process_author(sub[2:])
-        else:
-            process_sub(sub)
+            if sub[0:2] == "u_":
+                process_author(sub[2:])
+            else:
+                process_sub(sub)
+
+        time.sleep(600)
 
     logger.info(f"App is finished and exiting!")
 
 
 def get_posts(page):
     new = [p for p in page.new(limit=LIMIT)]
-    top = [p for p in page.top(limit=LIMIT, time_filter="month")]
+    # top = [p for p in page.top(limit=LIMIT, time_filter="month")]
     # hot = [p for p in page.hot(limit=LIMIT)]
 
-    return new + top
+    # return new + top
+    return new
 
 
 def process_author(author):
@@ -147,7 +151,7 @@ def download_from_archived(post):
 
 
 def download_post(post):
-    os.chdir("/pictures/_RedditPRAW/")
+    os.chdir("/pictures/_RedditPRAW2/")
 
     uobd = "url_overridden_by_dest"
     if "url" not in post and uobd not in post:
@@ -155,7 +159,11 @@ def download_post(post):
     
     url_key = uobd if uobd in post else "url"
     url = post[url_key].replace("&amp;", "&")
-    os.popen(f'gallery-dl "{url}" -D . ').read()
+    # agent = "-o 'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0'"
+    if 'v.redd.it' in url:
+        os.popen(f'youtube-dl "{url}"').read()
+    else:
+        os.popen(f'gallery-dl "{url}" -D . --range 1-4096 ').read()
     time.sleep(1)
 
     all_files = []
@@ -240,7 +248,7 @@ def save_data(post_id, post_data, directory):
     json_data[post_id] = post_data
 
     with open(f"{route}{post_id[4:6]}.json", "w") as write_file:
-        json.dump(json_data, write_file, indent=0, sort_keys=True)
+        json.dump(json_data, write_file, sort_keys=True)
 
 
 if __name__ == "__main__":

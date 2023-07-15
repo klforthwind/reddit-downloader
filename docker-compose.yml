@@ -4,6 +4,5 @@ services:
     build: .
     volumes:
       - ${IMG_PATH}:/pictures/
-      - ${IMG_PATH}/${TEMP_IMGS}:/pictures/_RedditPRAW/
       - ${INFO_PATH}:/info/
       - ${RELATIONS_PATH}:/relations/
