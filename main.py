@@ -15,18 +15,19 @@ load_dotenv()
 LIMIT = int(os.getenv("LIMIT"))
 
 logger.basicConfig(
-    format='%(asctime)s %(message)s',
-    datefmt='%m/%d/%Y %I:%M:%S %p %Z',
-    level=logger.INFO
+    format="%(asctime)s %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S %p %Z",
+    level=logger.INFO,
 )
 
 reddit = praw.Reddit(
-    client_id = os.getenv('client'),
-    client_secret = os.getenv('secret'),
-    username = os.getenv('reddit_user'),
-    password = os.getenv('reddit_pass'),
-    user_agent = 'ForthBot/0.1.4',
+    client_id=os.getenv("client"),
+    client_secret=os.getenv("secret"),
+    username=os.getenv("reddit_user"),
+    password=os.getenv("reddit_pass"),
+    user_agent="ForthBot/0.1.4",
 )
+
 
 def main():
     """Main fuction for this project."""
@@ -90,14 +91,15 @@ def get_sha256(filename):
     sha256_hash = hashlib.sha256()
     with open(filename, "rb") as read_file:
         # Read and update hash string value in blocks of 4K
-        for byte_block in iter(lambda: read_file.read(4096),b""):
+        for byte_block in iter(lambda: read_file.read(4096), b""):
             sha256_hash.update(byte_block)
 
     new_file = sha256_hash.hexdigest()
     if "." in filename:
-        new_file += "." + filename.split('.')[-1]
+        new_file += "." + filename.split(".")[-1]
 
     return new_file
+
 
 def download_from_archived(post):
     """Download post using media metadata."""
@@ -108,7 +110,11 @@ def download_from_archived(post):
     if parents in data and len(data[parents]):
         data = data["crosspost_parent_list"][0]
 
-    if "gallery_data" in data and "media_metadata" in data and data["gallery_data"] is not None:
+    if (
+        "gallery_data" in data
+        and "media_metadata" in data
+        and data["gallery_data"] is not None
+    ):
         logger.info("MediaMetadata - Downloading")
         order = list(map(lambda x: x["media_id"], data["gallery_data"]["items"]))
 
@@ -117,9 +123,9 @@ def download_from_archived(post):
                 source = data["media_metadata"][o_id]["s"]
                 key = "u"
                 if "gif" in source:
-                    key="gif"
+                    key = "gif"
                 elif "mp4" in source:
-                    key="mp4"
+                    key = "mp4"
                 url = source[key].replace("&amp;", "&")
                 os.popen(f'gallery-dl "{url}" -D . ').read()
                 for img_file in os.listdir():
@@ -138,7 +144,7 @@ def download_post(post):
 
     url_key = uobd if uobd in post else "url"
     url = post[url_key].replace("&amp;", "&")
-    if 'v.redd.it' in url:
+    if "v.redd.it" in url:
         os.popen(f'youtube-dl "{url}"').read()
     else:
         os.popen(f'gallery-dl "{url}" -D . --range 1-4096 ').read()
@@ -163,11 +169,11 @@ def download_post(post):
         new_file = get_sha256(dl_file)
         all_files.append(new_file)
 
-        dirs = [new_file[di*2:di*2+2] for di in range(3)]
-        route = '../'
+        dirs = [new_file[di * 2 : di * 2 + 2] for di in range(3)]
+        route = "../"
 
         for dir_ in dirs:
-            route += dir_ + '/'
+            route += dir_ + "/"
             if not isdir(route):
                 os.mkdir(route)
 
@@ -183,11 +189,11 @@ def post_exists(post_id):
     """Check to see if post exists within file directory."""
     os.chdir("/relations/")
     post_id = post_id.zfill(8)
-    dirs = [post_id[di*2:di*2+2] for di in range(2)]
-    route = './'
+    dirs = [post_id[di * 2 : di * 2 + 2] for di in range(2)]
+    route = "./"
 
     for dir_ in dirs:
-        route += dir_ + '/'
+        route += dir_ + "/"
         if not isdir(route):
             return False
 
@@ -204,11 +210,11 @@ def save_data(post_id, post_data, directory):
     os.chdir(directory)
 
     post_id = post_id.zfill(8)
-    dirs = [post_id[di*2:di*2+2] for di in range(2)]
-    route = './'
+    dirs = [post_id[di * 2 : di * 2 + 2] for di in range(2)]
+    route = "./"
 
     for dir_ in dirs:
-        route += dir_ + '/'
+        route += dir_ + "/"
         if not isdir(route):
             os.mkdir(route)
 
