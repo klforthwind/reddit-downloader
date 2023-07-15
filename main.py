@@ -1,15 +1,14 @@
-from dotenv import load_dotenv
-from datetime import datetime
+"""Main file for Reddit Downloader"""
 from os.path import isfile
 from os.path import isdir
 import logging as logger
-import inspect
 import hashlib
 import json
-import praw
 import time
-import sys
 import os
+
+import praw
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -30,14 +29,15 @@ reddit = praw.Reddit(
 )
 
 def main():
-    logger.info(f"App is up and running!")
+    """Main fuction for this project."""
+    logger.info("App is up and running!")
 
     while True:
         subscribed = list(reddit.user.subreddits(limit=None))
         subreddits = sorted(list(map(lambda s: s.display_name, subscribed)))
 
         for sub in subreddits:
-            logger.info(f"Processing {sub}!")
+            logger.info("Processing %s!", sub)
 
             if sub[0:2] == "u_":
                 process_author(sub[2:])
@@ -46,10 +46,11 @@ def main():
 
         time.sleep(600)
 
-    logger.info(f"App is finished and exiting!")
+    logger.info("App is finished and exiting!")
 
 
 def get_posts(page):
+    """Get posts from page (subreddit / author)."""
     new = [p for p in page.new(limit=LIMIT)]
     # top = [p for p in page.top(limit=LIMIT, time_filter="month")]
     # hot = [p for p in page.hot(limit=LIMIT)]
@@ -61,7 +62,7 @@ def get_posts(page):
 def process_author(author):
     """Iterates over author posts."""
     user_page = reddit.redditor(author).submissions
-    
+
     for post in get_posts(user_page):
         process_post(post)
 
@@ -87,7 +88,7 @@ def get_data(post):
             post_data[k] = str(data[k])
         else:
             post_data[k] = data[k]
-    
+
     return post_data
 
 
@@ -96,7 +97,7 @@ def process_post(post):
     if post_exists(post.id):
         return
 
-    logger.info(f"{post.id} - {post.title}")
+    logger.info("%s - %s", post.id, post.title)
 
     post_data = get_data(post)
 
@@ -108,18 +109,19 @@ def process_post(post):
 def get_sha256(filename):
     """Gets the SHA256 of a file."""
     sha256_hash = hashlib.sha256()
-    with open(filename, "rb") as f:
+    with open(filename, "rb") as read_file:
         # Read and update hash string value in blocks of 4K
-        for byte_block in iter(lambda: f.read(4096),b""):
+        for byte_block in iter(lambda: read_file.read(4096),b""):
             sha256_hash.update(byte_block)
-        
+
     new_file = sha256_hash.hexdigest()
     if "." in filename:
         new_file += "." + filename.split('.')[-1]
-    
+
     return new_file
 
 def download_from_archived(post):
+    """Download post using media metadata."""
     proc_files = []
     data = post
 
@@ -128,38 +130,35 @@ def download_from_archived(post):
         data = data["crosspost_parent_list"][0]
 
     if "gallery_data" in data and "media_metadata" in data and data["gallery_data"] is not None:
-        logger.info(f"MediaMetadata - Downloading")
+        logger.info("MediaMetadata - Downloading")
         order = list(map(lambda x: x["media_id"], data["gallery_data"]["items"]))
 
         for o_id in order:
-            try:
-                if data["media_metadata"][o_id]["status"] != "failed":
-                    source = data["media_metadata"][o_id]["s"]
-                    key = "u"
-                    if "gif" in source:
-                        key="gif"
-                    elif "mp4" in source:
-                        key="mp4" 
-                    url = source[key].replace("&amp;", "&")
-                    os.popen(f'gallery-dl "{url}" -D . ').read()
-                    for f in os.listdir():
-                        if f not in proc_files:
-                            proc_files.append(f)
-            except:
-                pass
+            if data["media_metadata"][o_id]["status"] != "failed":
+                source = data["media_metadata"][o_id]["s"]
+                key = "u"
+                if "gif" in source:
+                    key="gif"
+                elif "mp4" in source:
+                    key="mp4"
+                url = source[key].replace("&amp;", "&")
+                os.popen(f'gallery-dl "{url}" -D . ').read()
+                for img_file in os.listdir():
+                    if img_file not in proc_files:
+                        proc_files.append(img_file)
     return proc_files
 
 
 def download_post(post):
+    """Download Reddit post."""
     os.chdir("/pictures/_RedditPRAW2/")
 
     uobd = "url_overridden_by_dest"
     if "url" not in post and uobd not in post:
         return
-    
+
     url_key = uobd if uobd in post else "url"
     url = post[url_key].replace("&amp;", "&")
-    # agent = "-o 'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0'"
     if 'v.redd.it' in url:
         os.popen(f'youtube-dl "{url}"').read()
     else:
@@ -172,14 +171,11 @@ def download_post(post):
     if len(os.listdir()) == 0 and ".gif" not in url and ".mp4" not in url:
         proc_files = download_from_archived(post)
     if len(os.listdir()) == 0 and "preview" in post:
-        try:
-            url = post["preview"]["images"][0]["source"]["url"].replace("&amp;", "&")
-            os.popen(f'gallery-dl "{url}" -D . ').read()
-            for f in os.listdir():
-                if f not in proc_files:
-                    proc_files.append(f)
-        except:
-            pass
+        url = post["preview"]["images"][0]["source"]["url"].replace("&amp;", "&")
+        os.popen(f'gallery-dl "{url}" -D . ').read()
+        for img_file in os.listdir():
+            if img_file not in proc_files:
+                proc_files.append(img_file)
 
     if len(proc_files) == 0:
         proc_files = sorted(os.listdir())
@@ -202,14 +198,15 @@ def download_post(post):
         if not isfile(f'"{route}{new_file[2*len(dirs):]}"'):
             os.popen(f'cp "./{dl_file}" "{route}{new_file[2*len(dirs):]}"').read()
         os.popen(f'rm "./{dl_file}"').read()
-    
+
     if len(os.listdir()):
-        raise Exception
+        raise RuntimeError("Files still exist within directory")
 
     return all_files
 
 
 def post_exists(post_id):
+    """Check to see if post exists within file directory."""
     os.chdir("/relations/")
     post_id = post_id.zfill(8)
     dirs = [post_id[di*2:di*2+2] for di in range(2)]
@@ -223,12 +220,13 @@ def post_exists(post_id):
     if not isfile(f"{route}{post_id[4:6]}.json"):
         return False
 
-    with open(f"{route}{post_id[4:6]}.json") as read_file:
+    with open(f"{route}{post_id[4:6]}.json", encoding="utf-8") as read_file:
         json_data = json.load(read_file)
         return post_id in json_data
 
 
 def save_data(post_id, post_data, directory):
+    """Save data associated with post into directory."""
     os.chdir(directory)
 
     post_id = post_id.zfill(8)
@@ -242,15 +240,14 @@ def save_data(post_id, post_data, directory):
 
     json_data = dict()
     if isfile(f"{route}{post_id[4:6]}.json"):
-        with open(f"{route}{post_id[4:6]}.json") as read_file:
+        with open(f"{route}{post_id[4:6]}.json", encoding="utf-8") as read_file:
             json_data = json.load(read_file)
 
     json_data[post_id] = post_data
 
-    with open(f"{route}{post_id[4:6]}.json", "w") as write_file:
+    with open(f"{route}{post_id[4:6]}.json", "w", encoding="utf-8") as write_file:
         json.dump(json_data, write_file, sort_keys=True)
 
 
 if __name__ == "__main__":
     main()
-
